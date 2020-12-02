@@ -10,15 +10,15 @@ namespace DOTS
 {
     /*
      * Copyright (C) Anton Trukhan, 2020.
-    */
+     */
     [DisableAutoCreation]
-    public class NavMeshPathfindingSystem : JobComponentSystem
+    public class NavMeshPathfindingSystem : SystemBase
     {
         private const int MAXIMUM_POOL_SIZE = 50;
         private EntityQuery requests;
         private EntityCommandBufferSystem commandBufferSystem;
         private Dictionary<Entity, NavMeshQuery> navMeshQueries;
-        
+
         protected override void OnCreate()
         {
             navMeshQueries = new Dictionary<Entity, NavMeshQuery>();
@@ -26,23 +26,23 @@ namespace DOTS
             commandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
         }
 
-        protected override JobHandle OnUpdate(JobHandle inputDeps)
+        protected override void OnUpdate()
         {
             var lookup = GetBufferFromEntity<PathBufferElement>();
-            var commandBuffer = commandBufferSystem.CreateCommandBuffer().ToConcurrent();
+            var commandBuffer = commandBufferSystem.CreateCommandBuffer().AsParallelWriter();
             var world = NavMeshWorld.GetDefaultWorld();
-            
+
             var pathfindingDatas = requests.ToComponentDataArray<NavMeshPathfindingRequestData>(Allocator.TempJob);
             var entities = requests.ToEntityArray(Allocator.TempJob);
 
             var jobs = new NativeArray<JobHandle>(pathfindingDatas.Length, Allocator.TempJob);
-            
-            JobHandle jobHandle = inputDeps;
 
-            for ( var i = 0; i < entities.Length; ++i)
+            JobHandle jobHandle = Dependency;
+
+            for (var i = 0; i < entities.Length; ++i)
             {
                 var entity = entities[i];
-                
+
                 //Destroy finished requests
                 if (pathfindingDatas[i].Status == PathSearchStatus.Finished)
                 {
@@ -51,11 +51,11 @@ namespace DOTS
                     EntityManager.DestroyEntity(entity);
                     continue;
                 }
-                
+
                 //Process requests in progress
-                if (!navMeshQueries.TryGetValue( entity, out var query))
+                if (!navMeshQueries.TryGetValue(entity, out var query))
                 {
-                    query = navMeshQueries[ entity ] =
+                    query = navMeshQueries[entity] =
                         new NavMeshQuery(world, Allocator.Persistent, MAXIMUM_POOL_SIZE);
                 }
                 var navMeshPathfindingJob = new NavMeshPathfindingJob
@@ -69,46 +69,46 @@ namespace DOTS
                     EntityRequestId = entity
                 };
 
-                jobs[i] = navMeshPathfindingJob.Schedule(inputDeps);
+                jobs[i] = navMeshPathfindingJob.Schedule(Dependency);
             }
-            
-            jobHandle = JobHandle.CombineDependencies(jobs);
 
+            jobHandle = JobHandle.CombineDependencies(jobs);
+            Dependency = jobHandle;
             pathfindingDatas.Dispose();
             entities.Dispose();
-            
+
             jobs.Dispose();
-           
+
             commandBufferSystem.AddJobHandleForProducer(jobHandle);
-            return jobHandle;
+            // return jobHandle;
         }
-        
+
         [BurstCompile]
         struct NavMeshPathfindingJob : IJob
         {
             [NativeDisableParallelForRestriction]
             public BufferFromEntity<PathBufferElement> BuffersLookup;
-            
+
             [ReadOnly]
             public int JobIndex;
 
-            [ReadOnly] 
+            [ReadOnly]
             public int MaximumPoolSize;
 
-            [ReadOnly] 
+            [ReadOnly]
             public Entity EntityRequestId;
 
-            public EntityCommandBuffer.Concurrent CommandBuffer;
-            
+            public EntityCommandBuffer.ParallelWriter CommandBuffer;
+
             public NavMeshQuery Query;
-            
+
             public NavMeshPathfindingRequestData Request;
 
             public void Execute()
             {
-                if (Request.Status == PathSearchStatus.Requested )
+                if (Request.Status == PathSearchStatus.Requested)
                 {
-                    StartPathSearch( JobIndex, EntityRequestId, Query, CommandBuffer, Request );
+                    StartPathSearch(JobIndex, EntityRequestId, Query, CommandBuffer, Request);
                 }
                 else if (Request.Status == PathSearchStatus.Started)
                 {
@@ -117,34 +117,34 @@ namespace DOTS
                     {
                         Query.EndFindPath(out int pathSize);
                         var pathBuffer = BuffersLookup[Request.Agent];
-                        
+
                         //Path is straight and has no obstacles
-                        if (pathSize == 1)
-                        {
-                            pathBuffer.Add(new PathBufferElement { Value = Request.Destination } );
-                            CommandBuffer.DestroyEntity(JobIndex, EntityRequestId);
-                            return;
-                        }
+                        // if (pathSize == 1)
+                        // {
+                        //     pathBuffer.Add(new PathBufferElement { Value = Request.Destination } );
+                        //     CommandBuffer.DestroyEntity(JobIndex, EntityRequestId);
+                        //     return;
+                        // }
 
                         //Path is complex and needs to be properly extracted
-                        CompletePathSearch(JobIndex, EntityRequestId, Query, CommandBuffer, pathSize, 
+                        CompletePathSearch(JobIndex, EntityRequestId, Query, CommandBuffer, pathSize,
                             MaximumPoolSize, Request, pathBuffer);
                     }
                 }
             }
 
-            private static void StartPathSearch(int jobIndex, Entity entityRequest, NavMeshQuery query, 
-                EntityCommandBuffer.Concurrent commandBuffer, NavMeshPathfindingRequestData request)
+            private static void StartPathSearch(int jobIndex, Entity entityRequest, NavMeshQuery query,
+                EntityCommandBuffer.ParallelWriter commandBuffer, NavMeshPathfindingRequestData request)
             {
-                var from = query.MapLocation (request.Start, request.Extents, request.AgentTypeId);
-                var to = query.MapLocation (request.Destination, request.Extents, request.AgentTypeId);
+                var from = query.MapLocation(request.Start, request.Extents, request.AgentTypeId);
+                var to = query.MapLocation(request.Destination, request.Extents, request.AgentTypeId);
                 query.BeginFindPath(from, to);
                 request.Status = PathSearchStatus.Started;
                 commandBuffer.SetComponent(jobIndex, entityRequest, request);
             }
 
-            private static void CompletePathSearch(int jobIndex, Entity entityRequest, NavMeshQuery query, 
-                EntityCommandBuffer.Concurrent commandBuffer, int pathSize, int maximumPoolSize, 
+            private static void CompletePathSearch(int jobIndex, Entity entityRequest, NavMeshQuery query,
+                EntityCommandBuffer.ParallelWriter commandBuffer, int pathSize, int maximumPoolSize,
                 NavMeshPathfindingRequestData request, DynamicBuffer<PathBufferElement> agentPathBuffer)
             {
                 var resultPath = new NativeArray<PolygonId>(pathSize, Allocator.Temp);
@@ -152,24 +152,24 @@ namespace DOTS
 
                 //Extract path from PolygonId list
                 var straightPathCount = 0;
-                var straightPath = ExtractPath(query, 
-                    request.Start,  request.Destination, 
+                var straightPath = ExtractPath(query,
+                    request.Start, request.Destination,
                     resultPath, maximumPoolSize, ref straightPathCount);
 
                 //Put the result path into buffer
                 for (int i = 0; i < straightPathCount; i++)
                 {
-                    agentPathBuffer.Add(new PathBufferElement { Value = straightPath[i].position } );
+                    agentPathBuffer.Add(new PathBufferElement { Value = straightPath[i].position });
                 }
 
                 straightPath.Dispose();
                 resultPath.Dispose();
-                
+
                 request.Status = PathSearchStatus.Finished;
                 commandBuffer.SetComponent(jobIndex, entityRequest, request);
             }
 
-            private static NativeArray<NavMeshLocation> ExtractPath(NavMeshQuery query, 
+            private static NativeArray<NavMeshLocation> ExtractPath(NavMeshQuery query,
                 Vector3 startPosition, Vector3 endPosition,
                 NativeArray<PolygonId> calculatedPath, int maxPathLength, ref int straightPathCount)
             {
@@ -177,14 +177,14 @@ namespace DOTS
                 var straightPath = new NativeArray<NavMeshLocation>(pathLength, Allocator.Temp);
                 var straightPathFlags = new NativeArray<StraightPathFlags>(pathLength, Allocator.Temp);
                 var vertexSide = new NativeArray<float>(pathLength, Allocator.Temp);
-                
+
                 var pathStatus = PathUtils.FindStraightPath(query, startPosition, endPosition, calculatedPath,
                     pathLength, ref straightPath, ref straightPathFlags, ref vertexSide,
                     ref straightPathCount, maxPathLength);
 
                 straightPathFlags.Dispose();
                 vertexSide.Dispose();
-                
+
                 return straightPath;
             }
         }

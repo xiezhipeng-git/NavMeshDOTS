@@ -11,6 +11,7 @@ namespace DOTS
         public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
         {
             DOTSLocator.AgentEntity = entity;
+            DOTSLocator.AgentEntitys.Add(entity);
         }
     }
 }
