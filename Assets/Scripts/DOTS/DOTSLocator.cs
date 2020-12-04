@@ -8,7 +8,7 @@ namespace DOTS
      */
     public static class DOTSLocator
     {
-        public static Entity AgentEntity;
+        // public static Entity AgentEntity;
         public static List<Entity> AgentEntitys = new List<Entity>();
 
     }

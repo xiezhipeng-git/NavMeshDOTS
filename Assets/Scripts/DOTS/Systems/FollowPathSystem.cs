@@ -4,7 +4,6 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
-
 using UnityEngine;
 
 namespace DOTS
@@ -12,34 +11,35 @@ namespace DOTS
     /*
      * Copyright (C) Anton Trukhan, 2020.
      */
-    //  [UpdateInGroup(typeof(Unity.Entities.SimulationSystemGroup))]
-        //  [UpdateAfter(typeof(NavMeshPathfindingSystem))]
+    // [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
+    [UpdateAfter(typeof(NavMeshPathfindingSystem))]
 
     public class FollowPathSystem : SystemBase
     {
         private EntityCommandBufferSystem commandBufferSystem;
         public const float STOPPING_RANGE = 0.5f;
-          protected override void OnCreate()
+        protected override void OnCreate()
         {
-        
+
             commandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
         }
         protected override void OnUpdate()
         {
             // Debug.Log("FollowPathSystem OnUpdate");
-            
+
             // var buffersLookup = GetBufferFromEntity<PathBufferElement>();
             // var pathFindSystemDependency = World.GetOrCreateSystem<NavMeshPathfindingSystem>()
 
             //  Dependency = JobHandle.CombineDependencies(Dependency, .GetOutputDependency());
-            var commandBuffer = commandBufferSystem.CreateCommandBuffer().AsParallelWriter();
+            // Debug.Log("FollowPathSystem OnUpdate began");
 
-            
+            // var commandBuffer = commandBufferSystem.CreateCommandBuffer().AsParallelWriter();
+
             var StoppingDistance = STOPPING_RANGE;
             Entities.
-            
+
             ForEach((Entity entity, int entityInQueryIndex, ref FollowPathData pathData,
-                ref DestinationData destinationData, ref Translation translation,in DynamicBuffer<PathBufferElement> buffer) =>
+                ref DestinationData destinationData, ref Translation translation, in DynamicBuffer<PathBufferElement> buffer) =>
             {
                 if (pathData.PathStatus == PathStatus.EndOfPathReached)
                 {
@@ -81,6 +81,10 @@ namespace DOTS
 
                 destinationData.Destination = pos;
             }).Schedule();
+            CompleteDependency();
+
+            // Debug.Log("FollowPathSystem OnUpdate end");
+
         }
 
         //     protected override JobHandle OnUpdate(JobHandle inputDeps)

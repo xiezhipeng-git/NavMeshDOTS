@@ -102,6 +102,16 @@ public class PathUtils
         }
         // straightPath[n] = query.CreateLocation(termPos, path[endIndex]);
         // straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
+        
+        //  if (n > straightPath.Length - 1) // Fix for IndexOutOfRangeException with one point on straightPath[n]
+        //     {
+        //         return n;
+        //     }
+
+        //     straightPath[n] = query.CreateLocation(termPos, path[endIndex]);
+        //     straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
+        //     return ++n;
+        
         return n;
     }
 

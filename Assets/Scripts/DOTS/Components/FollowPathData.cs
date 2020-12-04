@@ -16,5 +16,6 @@ namespace DOTS
     {
         public int PathIndex;
         public PathStatus PathStatus;
+        public Entity RequestEntity;
     }
 }
