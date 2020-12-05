@@ -236,17 +236,18 @@ namespace DOTS
                         // BuffersLookup[Request.Agent];
                         if (status == PathQueryStatus.Success)
                         {
+                            // 性能的一点点优化，由于加上会有些穿模，故去除
                             //Path is straight and has no obstacles
-                            if (pathSize == 1)
-                            {
-                                NativeBuffer.Add(new PathBufferElement { Value = Request.Destination });
-                                Request.Status = PathSearchStatus.Finished;
+                            // if (pathSize == 1)
+                            // {
+                            //     NativeBuffer.Add(new PathBufferElement { Value = Request.Destination });
+                            //     Request.Status = PathSearchStatus.Finished;
 
-                                RequestReslut[0] = Request;
+                            //     RequestReslut[0] = Request;
 
-                                // CommandBuffer.DestroyEntity(JobIndex, EntityRequestId);
-                                return;
-                            }
+                            //     // CommandBuffer.DestroyEntity(JobIndex, EntityRequestId);
+                            //     return;
+                            // }
 
                             //Path is complex and needs to be properly extracted
 
