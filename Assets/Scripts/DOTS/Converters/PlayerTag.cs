@@ -5,13 +5,10 @@ namespace DOTS
 {
     /*
      * Copyright (C) Anton Trukhan, 2020.
-    */
-    public class PlayerTag : MonoBehaviour, IConvertGameObjectToEntity
+     */
+    [GenerateAuthoringComponent]
+    public struct PlayerTag : IComponentData
     {
-        public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
-        {
-            // DOTSLocator.AgentEntity = entity;
-            DOTSLocator.AgentEntitys.Add(entity);
-        }
+
     }
 }

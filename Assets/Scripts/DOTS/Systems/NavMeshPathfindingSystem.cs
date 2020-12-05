@@ -47,6 +47,7 @@ namespace DOTS
             var jobRequestResult = new Dictionary<Entity, NativeArray<NavMeshPathfindingRequestData>>();
 
             // JobHandle jobHandle = Dependency;
+            // Debug.Log( entities.Length);
 
             for (var i = 0; i < entities.Length; ++i)
             {
@@ -113,6 +114,7 @@ namespace DOTS
             for (var i = 0; i < findJobs.Count; i++)
             {
                 var curJobRequstEntity = findJobs[i].EntityRequestId;
+                
                 var entityBuffer = EntityManager.GetBuffer<PathBufferElement>(findJobs[i].Request.Agent);
                 // entityBuffer.Clear();
                 entityBuffer.AddRange(findJobs[i].NativeBuffer);

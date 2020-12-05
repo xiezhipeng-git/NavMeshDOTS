@@ -14,21 +14,38 @@ namespace DOTS
     /*
      * Copyright (C) Anton Trukhan, 2020.
      */
+
+    public enum RightKeyCreateObj
+    {
+        ObstacleMono,
+        PlayerEntity,
+        ObstacleEntity
+    }
     public class NavAgentInputDOTS : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGameObjectToEntity
     {
         [SerializeField] private Camera Camera;
         public GameObject ObstacleMono;
         public GameObject ObstacleEntityGameobject;
-
+        public GameObject Player;
         public Entity ObstacleEntity;
+        public Entity PlayerEntity;
+        public RightKeyCreateObj RightKeyCreate;
+
         public void DeclareReferencedPrefabs(List<GameObject> gameObjects)
         {
             gameObjects.Add(ObstacleEntityGameobject);
+            gameObjects.Add(Player);
+        }
+
+        private void Awake()
+        {
+            // Debug.Log("Awake");
         }
 
         public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
         {
             ObstacleEntity = conversionSystem.GetPrimaryEntity(ObstacleEntityGameobject);
+            PlayerEntity = conversionSystem.GetPrimaryEntity(Player);
             Debug.Log("ObstacleEntity already covert");
         }
         public bool GetInputPos(out float3 resultPos)
@@ -55,11 +72,13 @@ namespace DOTS
 
         public void FindPath(float3 position)
         {
+            // Debug.Log("FindPath");
             var world = World.DefaultGameObjectInjectionWorld;
 
             EntityManager manager = world.EntityManager;
+            var players = world.GetOrCreateSystem<PlayerSystem>().GetPlayers();
 
-            foreach (var entity in DOTSLocator.AgentEntitys)
+            foreach (var entity in players)
             {
                 //Search path
                 var buffer = manager.GetBuffer<PathBufferElement>(entity);
@@ -89,28 +108,43 @@ namespace DOTS
             }
         }
 
-        public void AddObstcale(float3 position)
+        public void AddObject(float3 position)
         {
-            // AddObstcaleMono(position, ObstacleMono);
-
-            AddObstcaleEntity(position, ObstacleEntity);
+            if (RightKeyCreate == RightKeyCreateObj.ObstacleMono)
+            {
+                var onFloorPos = new float3(position.x, 1.5f, position.z);
+                AddMono(onFloorPos, ObstacleMono);
+            }
+            if (RightKeyCreate == RightKeyCreateObj.PlayerEntity)
+            {
+                var onFloorPos = new float3(position.x, 1.5f, position.z);
+                Entity e = AddEntity(onFloorPos, PlayerEntity);
+                World.DefaultGameObjectInjectionWorld.EntityManager.SetComponentData<DestinationData>(e, new DestinationData { Destination = onFloorPos });
+            }
+            if (RightKeyCreate == RightKeyCreateObj.ObstacleEntity)
+            {
+                var onFloorPos = new float3(position.x, 1.5f, position.z);
+                Entity e = AddEntity(onFloorPos, ObstacleEntity);
+            }
         }
 
-        public void AddObstcaleMono(float3 position, GameObject gameobject)
+        public GameObject AddMono(float3 position, GameObject gameobject)
         {
             var ob = GameObject.Instantiate(gameobject);
             ob.transform.localPosition = position;
+            return ob;
         }
 
-        public void AddObstcaleEntity(float3 position, Entity entity)
+        public Entity AddEntity(float3 position, Entity entity)
         {
             World.DefaultGameObjectInjectionWorld.EntityManager.Instantiate(entity);
             World.DefaultGameObjectInjectionWorld.EntityManager.SetComponentData<Translation>(entity, new Translation { Value = position });
+            return entity;
         }
 
         void Update()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (Input.GetMouseButton(0))
             {
                 var position = new float3();
                 if (!GetInputPos(out position))
@@ -121,7 +155,7 @@ namespace DOTS
                 FindPath(position);
 
             }
-            if (Input.GetMouseButtonDown(1))
+            if (Input.GetMouseButton(1))
             {
                 var position = new float3();
                 if (!GetInputPos(out position))
@@ -129,7 +163,7 @@ namespace DOTS
                     return;
                 }
 
-                AddObstcale(position);
+                AddObject(position);
 
             }
         }
