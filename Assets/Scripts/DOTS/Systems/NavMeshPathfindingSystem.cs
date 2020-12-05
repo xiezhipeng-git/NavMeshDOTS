@@ -227,22 +227,30 @@ namespace DOTS
                     var pathfindingStatus = Query.UpdateFindPath(10, out _);
                     if (pathfindingStatus == PathQueryStatus.Success)
                     {
-                        Query.EndFindPath(out int pathSize);
+                        var status = Query.EndFindPath(out int pathSize);
+
+                        Debug.Log($"数量:{pathSize}");
                         // var pathBuffer = NativeBuffer;
                         // BuffersLookup[Request.Agent];
+                        if (status == PathQueryStatus.Success)
+                        {
+                            //Path is straight and has no obstacles
+                            if (pathSize == 1)
+                            {
+                                NativeBuffer.Add(new PathBufferElement { Value = Request.Destination });
+                                Request.Status = PathSearchStatus.Finished;
 
-                        //Path is straight and has no obstacles
-                        // if (pathSize == 1)
-                        // {
-                        //     pathBuffer.Add(new PathBufferElement { Value = Request.Destination } );
-                        //     CommandBuffer.DestroyEntity(JobIndex, EntityRequestId);
-                        //     return;
-                        // }
+                                RequestReslut[0] = Request;
 
-                        //Path is complex and needs to be properly extracted
-                        CompletePathSearch(JobIndex, EntityRequestId, Query, pathSize,
-                            MaximumPoolSize, ref Request, ref NativeBuffer);
+                                // CommandBuffer.DestroyEntity(JobIndex, EntityRequestId);
+                                return;
+                            }
 
+                            //Path is complex and needs to be properly extracted
+
+                            CompletePathSearch(JobIndex, EntityRequestId, Query, pathSize,
+                                MaximumPoolSize, ref Request, ref NativeBuffer);
+                        }
                     }
                 }
                 RequestReslut[0] = Request;
@@ -255,6 +263,9 @@ namespace DOTS
                 var from = query.MapLocation(request.Start, request.Extents, request.AgentTypeId);
                 var to = query.MapLocation(request.Destination, request.Extents, request.AgentTypeId);
                 query.BeginFindPath(from, to);
+                Debug.Log($"from:{from.position.x} {from.position.y} {from.position.z}");
+                Debug.Log($"to:{to.position.x} {to.position.y} {to.position.z}");
+
                 request.Status = PathSearchStatus.Started;
                 // commandBuffer.SetComponent(jobIndex, entityRequest, request);
             }
@@ -279,7 +290,7 @@ namespace DOTS
                 for (int i = 0; i < straightPathCount; i++)
                 {
                     agentPathBuffer.Add(new PathBufferElement { Value = straightPath[i].position });
-                    // Debug.Log("有加过");
+                    Debug.Log($"{i}:{straightPath[i].position.x} {straightPath[i].position.y} {straightPath[i].position.z}");
                 }
 
                 straightPath.Dispose();

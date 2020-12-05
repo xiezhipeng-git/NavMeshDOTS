@@ -10,7 +10,7 @@ namespace DOTS.Systems
     /*
      * Copyright (C) Anton Trukhan, 2020.
      */
-    [DisableAutoCreation]
+    // [DisableAutoCreation]
     public class MoveToDestinationSystem : SystemBase
     {
         protected override void OnUpdate()

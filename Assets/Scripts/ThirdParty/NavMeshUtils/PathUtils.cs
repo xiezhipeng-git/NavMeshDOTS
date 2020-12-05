@@ -100,18 +100,16 @@ public class PathUtils
             //     Debug.Log(straightPath[i].position);
             // }
         }
+
+        // if (n > straightPath.Length - 1) // Fix for IndexOutOfRangeException with one point on straightPath[n]
+        // {
+        //     return n;
+        // }
+
         // straightPath[n] = query.CreateLocation(termPos, path[endIndex]);
         // straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
-        
-        //  if (n > straightPath.Length - 1) // Fix for IndexOutOfRangeException with one point on straightPath[n]
-        //     {
-        //         return n;
-        //     }
+        // return ++n;
 
-        //     straightPath[n] = query.CreateLocation(termPos, path[endIndex]);
-        //     straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
-        //     return ++n;
-        
         return n;
     }
 
@@ -253,7 +251,7 @@ public class PathUtils
         if (n > 0 && (straightPath[n - 1].position == endPos))
         {
             n--;
-            // Debug.Log($"倒数2已到达{n}");
+            Debug.Log($"倒数2已到达{n}");
         }
 
         n = RetracePortals(query, apexIndex, pathSize - 1, path, n, endPos, ref straightPath, ref straightPathFlags, maxStraightPath);
