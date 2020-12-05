@@ -229,7 +229,7 @@ namespace DOTS
                     {
                         var status = Query.EndFindPath(out int pathSize);
 
-                        Debug.Log($"数量:{pathSize}");
+                        // Debug.Log($"数量:{pathSize}");
                         // var pathBuffer = NativeBuffer;
                         // BuffersLookup[Request.Agent];
                         if (status == PathQueryStatus.Success)
@@ -263,8 +263,8 @@ namespace DOTS
                 var from = query.MapLocation(request.Start, request.Extents, request.AgentTypeId);
                 var to = query.MapLocation(request.Destination, request.Extents, request.AgentTypeId);
                 query.BeginFindPath(from, to);
-                Debug.Log($"from:{from.position.x} {from.position.y} {from.position.z}");
-                Debug.Log($"to:{to.position.x} {to.position.y} {to.position.z}");
+                // Debug.Log($"from:{from.position.x} {from.position.y} {from.position.z}");
+                // Debug.Log($"to:{to.position.x} {to.position.y} {to.position.z}");
 
                 request.Status = PathSearchStatus.Started;
                 // commandBuffer.SetComponent(jobIndex, entityRequest, request);
@@ -290,7 +290,7 @@ namespace DOTS
                 for (int i = 0; i < straightPathCount; i++)
                 {
                     agentPathBuffer.Add(new PathBufferElement { Value = straightPath[i].position });
-                    Debug.Log($"{i}:{straightPath[i].position.x} {straightPath[i].position.y} {straightPath[i].position.z}");
+                    // Debug.Log($"{i}:{straightPath[i].position.x} {straightPath[i].position.y} {straightPath[i].position.z}");
                 }
 
                 straightPath.Dispose();
@@ -305,16 +305,19 @@ namespace DOTS
                 NativeArray<PolygonId> calculatedPath, int maxPathLength, ref int straightPathCount)
             {
                 var pathLength = calculatedPath.Length;
-                var straightPath = new NativeArray<NavMeshLocation>(pathLength, Allocator.Temp);
-                var straightPathFlags = new NativeArray<StraightPathFlags>(pathLength, Allocator.Temp);
-                var vertexSide = new NativeArray<float>(pathLength, Allocator.Temp);
+                // var straightPath = new NativeArray<NavMeshLocation>(pathLength, Allocator.Temp);
+                // var straightPathFlags = new NativeArray<StraightPathFlags>(pathLength, Allocator.Temp);
+                // var vertexSide = new NativeArray<float>(pathLength, Allocator.Temp);
+                  var straightPath = new NativeList<NavMeshLocation>(pathLength, Allocator.Temp);
+                var straightPathFlags = new NativeList<StraightPathFlags>(pathLength, Allocator.Temp);
+                // var vertexSide = new NativeList<float>(pathLength, Allocator.Temp);
 
                 var pathStatus = PathUtils.FindStraightPath(query, startPosition, endPosition, calculatedPath,
-                    pathLength, ref straightPath, ref straightPathFlags, ref vertexSide,
+                    pathLength, ref straightPath,
                     ref straightPathCount, maxPathLength);
 
                 straightPathFlags.Dispose();
-                vertexSide.Dispose();
+                // vertexSide.Dispose();
 
                 return straightPath;
             }

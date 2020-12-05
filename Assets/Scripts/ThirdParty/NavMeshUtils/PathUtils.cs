@@ -48,7 +48,7 @@ public class PathUtils
     }
 
     // Retrace portals between corners and register if type of polygon changes
-    public static int RetracePortals(NavMeshQuery query, int startIndex, int endIndex, NativeSlice<PolygonId> path, int n, Vector3 termPos, ref NativeArray<NavMeshLocation> straightPath, ref NativeArray<StraightPathFlags> straightPathFlags, int maxStraightPath)
+    public static int RetracePortals(NavMeshQuery query, int startIndex, int endIndex, NativeSlice<PolygonId> path, int n, Vector3 termPos, ref NativeList<NavMeshLocation> straightPath, int maxStraightPath)
     {
 #if DEBUG_CROWDSYSTEM_ASSERTS
         Assert.IsTrue(n < maxStraightPath);
@@ -70,9 +70,9 @@ public class PathUtils
 
                 float3 cpa1, cpa2;
                 GeometryUtils.SegmentSegmentCPA(out cpa1, out cpa2, l, r, straightPath[n - 1].position, termPos);
-                straightPath[n] = query.CreateLocation(cpa1, path[k + 1]);
+                straightPath.Add(query.CreateLocation(cpa1, path[k + 1]));
 
-                straightPathFlags[n] = (type2 == NavMeshPolyTypes.OffMeshConnection) ? StraightPathFlags.OffMeshConnection : 0;
+                // straightPathFlags[n] = (type2 == NavMeshPolyTypes.OffMeshConnection) ? StraightPathFlags.OffMeshConnection : 0;
                 if (++n == maxStraightPath)
                 {
                     // Debug.Log($"1： {n} {maxStraightPath} {startIndex} {endIndex} {straightPath.Length}");
@@ -83,55 +83,55 @@ public class PathUtils
         }
         // Debug.Log($"2：{n} {maxStraightPath} {startIndex} {endIndex} {straightPath.Length}");
 
-        if (n < straightPath.Length)
-        {
-            straightPath[n] = query.CreateLocation(termPos, path[endIndex]);
-            straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
-            return ++n;
-        }
-        else
-        {
-            // Debug.LogWarning($"寻路出现错误 {termPos}");
-            // 拐角的时候可能多一个，然后就错误，暂时这样改
-            straightPath[n - 1] = query.CreateLocation(termPos, path[endIndex]);
-            straightPathFlags[n - 1] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
-            // for (var i = 0; i < straightPath.Length; i++)
-            // {
-            //     Debug.Log(straightPath[i].position);
-            // }
-        }
-
-        // if (n > straightPath.Length - 1) // Fix for IndexOutOfRangeException with one point on straightPath[n]
+        // if (n < straightPath.Length)
         // {
-        //     return n;
+            straightPath.Add(query.CreateLocation(termPos, path[endIndex]));
+            // straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
+            return ++n;
+        // }
+        // else
+        // {
+        //     // Debug.LogWarning($"寻路出现错误 {termPos}");
+        //     // 拐角的时候可能多一个，然后就错误，暂时这样改
+        //     straightPath[n - 1] = query.CreateLocation(termPos, path[endIndex]);
+        //     straightPathFlags[n - 1] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
+        //     // for (var i = 0; i < straightPath.Length; i++)
+        //     // {
+        //     //     Debug.Log(straightPath[i].position);
+        //     // }
         // }
 
-        // straightPath[n] = query.CreateLocation(termPos, path[endIndex]);
-        // straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
-        // return ++n;
+        // // if (n > straightPath.Length - 1) // Fix for IndexOutOfRangeException with one point on straightPath[n]
+        // // {
+        // //     return n;
+        // // }
 
-        return n;
+        // // straightPath[n] = query.CreateLocation(termPos, path[endIndex]);
+        // // straightPathFlags[n] = query.GetPolygonType(path[endIndex]) == NavMeshPolyTypes.OffMeshConnection ? StraightPathFlags.OffMeshConnection : 0;
+        // // return ++n;
+
+        // return n;
     }
 
-    public static PathQueryStatus FindStraightPath(NavMeshQuery query, Vector3 startPos, Vector3 endPos, NativeSlice<PolygonId> path, int pathSize, ref NativeArray<NavMeshLocation> straightPath, ref NativeArray<StraightPathFlags> straightPathFlags, ref NativeArray<float> vertexSide, ref int straightPathCount, int maxStraightPath)
+    public static PathQueryStatus FindStraightPath(NavMeshQuery query, Vector3 startPos, Vector3 endPos, NativeSlice<PolygonId> path, int pathSize, ref NativeList<NavMeshLocation> straightPath,  ref int straightPathCount, int maxStraightPath)
     {
-#if DEBUG_CROWDSYSTEM_ASSERTS
-        Assert.IsTrue(pathSize > 0, "FindStraightPath: The path cannot be empty");
-        Assert.IsTrue(path.Length >= pathSize, "FindStraightPath: The array of path polygons must fit at least the size specified");
-        Assert.IsTrue(maxStraightPath > 1, "FindStraightPath: At least two corners need to be returned, the start and end");
-        Assert.IsTrue(straightPath.Length >= maxStraightPath, $"FindStraightPath: The array of returned corners cannot be smaller than the desired maximum corner count {straightPath.Length} {maxStraightPath}");
-        Assert.IsTrue(straightPathFlags.Length >= straightPath.Length, "FindStraightPath: The array of returned flags must not be smaller than the array of returned corners");
-#endif
+// #if DEBUG_CROWDSYSTEM_ASSERTS
+//         Assert.IsTrue(pathSize > 0, "FindStraightPath: The path cannot be empty");
+//         Assert.IsTrue(path.Length >= pathSize, "FindStraightPath: The array of path polygons must fit at least the size specified");
+//         Assert.IsTrue(maxStraightPath > 1, "FindStraightPath: At least two corners need to be returned, the start and end");
+//         Assert.IsTrue(straightPath.Length >= maxStraightPath, $"FindStraightPath: The array of returned corners cannot be smaller than the desired maximum corner count {straightPath.Length} {maxStraightPath}");
+//         Assert.IsTrue(straightPathFlags.Length >= straightPath.Length, "FindStraightPath: The array of returned flags must not be smaller than the array of returned corners");
+// #endif
 
         if (!query.IsValid(path[0]))
         {
-            straightPath[0] = new NavMeshLocation(); // empty terminator
+            straightPath.Add(new NavMeshLocation()); // empty terminator
             return PathQueryStatus.Failure; // | PathQueryStatus.InvalidParam;
         }
 
-        straightPath[0] = query.CreateLocation(startPos, path[0]);
+        straightPath.Add(query.CreateLocation(startPos, path[0]));
 
-        straightPathFlags[0] = StraightPathFlags.Start;
+        // straightPathFlags.Add(StraightPathFlags.Start);
 
         var apexIndex = 0;
         var n = 1;
@@ -164,10 +164,10 @@ public class PathUtils
                         return PathQueryStatus.Failure; // | PathQueryStatus.InvalidParam;
                     }
 
-#if DEBUG_CROWDSYSTEM_ASSERTS
-                    Assert.IsTrue(query.IsValid(path[i - 1]));
-                    Assert.IsTrue(query.IsValid(path[i]));
-#endif
+// #if DEBUG_CROWDSYSTEM_ASSERTS
+//                     Assert.IsTrue(query.IsValid(path[i - 1]));
+//                     Assert.IsTrue(query.IsValid(path[i]));
+// #endif
 
                     vl = polyWorldToLocal.MultiplyPoint(vl);
                     vr = polyWorldToLocal.MultiplyPoint(vr);
@@ -186,11 +186,11 @@ public class PathUtils
                     var polyLocalToWorld = query.PolygonLocalToWorldMatrix(path[apexIndex]);
                     var termPos = polyLocalToWorld.MultiplyPoint(apex + left);
 
-                    n = RetracePortals(query, apexIndex, leftIndex, path, n, termPos, ref straightPath, ref straightPathFlags, maxStraightPath);
-                    if (vertexSide.Length > 0)
-                    {
-                        vertexSide[n - 1] = -1;
-                    }
+                    n = RetracePortals(query, apexIndex, leftIndex, path, n, termPos, ref straightPath, maxStraightPath);
+                    // if (vertexSide.Length > 0)
+                    // {
+                    //     vertexSide[n - 1] = -1;
+                    // }
 
                     //Debug.Log("LEFT");
 
@@ -211,11 +211,11 @@ public class PathUtils
                     var polyLocalToWorld = query.PolygonLocalToWorldMatrix(path[apexIndex]);
                     var termPos = polyLocalToWorld.MultiplyPoint(apex + right);
 
-                    n = RetracePortals(query, apexIndex, rightIndex, path, n, termPos, ref straightPath, ref straightPathFlags, maxStraightPath);
-                    if (vertexSide.Length > 0)
-                    {
-                        vertexSide[n - 1] = 1;
-                    }
+                    n = RetracePortals(query, apexIndex, rightIndex, path, n, termPos, ref straightPath, maxStraightPath);
+                    // if (vertexSide.Length > 0)
+                    // {
+                    //     vertexSide[n - 1] = 1;
+                    // }
 
                     //Debug.Log("RIGHT");
 
@@ -254,11 +254,11 @@ public class PathUtils
             Debug.Log($"倒数2已到达{n}");
         }
 
-        n = RetracePortals(query, apexIndex, pathSize - 1, path, n, endPos, ref straightPath, ref straightPathFlags, maxStraightPath);
-        if (vertexSide.Length > 0)
-        {
-            vertexSide[n - 1] = 0;
-        }
+        n = RetracePortals(query, apexIndex, pathSize - 1, path, n, endPos, ref straightPath, maxStraightPath);
+        // if (vertexSide.Length > 0)
+        // {
+        //     vertexSide[n - 1] = 0;
+        // }
 
         if (n == maxStraightPath)
         {
@@ -267,7 +267,7 @@ public class PathUtils
         }
 
         // Fix flag for final path point
-        straightPathFlags[n - 1] = StraightPathFlags.End;
+        // straightPathFlags[n - 1] = StraightPathFlags.End;
 
         straightPathCount = n;
         return PathQueryStatus.Success;
