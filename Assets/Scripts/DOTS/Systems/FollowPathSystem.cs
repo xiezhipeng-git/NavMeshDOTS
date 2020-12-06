@@ -33,13 +33,13 @@ namespace DOTS
             //  Dependency = JobHandle.CombineDependencies(Dependency, .GetOutputDependency());
             // Debug.Log("FollowPathSystem OnUpdate began");
 
-            // var commandBuffer = commandBufferSystem.CreateCommandBuffer().AsParallelWriter();
+            var commandBuffer = commandBufferSystem.CreateCommandBuffer().AsParallelWriter();
 
             var StoppingDistance = STOPPING_RANGE;
             Entities.
 
             ForEach((Entity entity, int entityInQueryIndex, ref FollowPathData pathData,
-                ref DestinationData destinationData, ref Translation translation, in DynamicBuffer<PathBufferElement> buffer) =>
+                ref DestinationData destinationData, ref Translation translation, ref DynamicBuffer<PathBufferElement> buffer) =>
             {
                 if (pathData.PathStatus == PathStatus.EndOfPathReached)
                 {
@@ -49,7 +49,8 @@ namespace DOTS
                 if (pathData.PathStatus == PathStatus.Calculated)
                 {
                     pathData.PathStatus = PathStatus.Following;
-                    pathData.PathIndex = 0;
+                    // buffer的第一个点是原地，所以应该从1开始
+                    pathData.PathIndex = 1;
                 }
 
                 // if (!buffersLookup.HasComponent(entity))
@@ -63,13 +64,19 @@ namespace DOTS
                 {
                     return;
                 }
-
+                if (pathData.PathIndex > path.Length - 1)
+                {
+                    return;
+                }
                 var pos = path[pathData.PathIndex].Value;
                 var distance = math.distance(pos.xz, translation.Value.xz);
                 var pointReached = distance < StoppingDistance;
                 if (pointReached && pathData.PathIndex == path.Length - 1)
                 {
                     pathData.PathStatus = PathStatus.EndOfPathReached;
+                    buffer.Clear();
+                    commandBuffer.AddComponent<DeleteFindPathRequest>(entityInQueryIndex, pathData.RequestEntity, new DeleteFindPathRequest { });
+                    // commandBuffer.DestroyEntity(entityInQueryIndex, pathData.RequestEntity);
                     return;
                 }
 

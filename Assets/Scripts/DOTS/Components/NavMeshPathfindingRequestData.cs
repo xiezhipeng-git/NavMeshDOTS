@@ -24,5 +24,7 @@ namespace DOTS
         public Entity Agent;
         public Vector3 Extents;
         public int AgentTypeId;
+        public bool IsDynamicFindPath;
+        public bool IsEnd;
     }
 }

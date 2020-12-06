@@ -4,6 +4,8 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Experimental.AI;
 
@@ -22,6 +24,7 @@ namespace DOTS
         private EntityQuery requests;
         private EntityCommandBufferSystem commandBufferSystem;
         private Dictionary<Entity, NavMeshQuery> navMeshQueries;
+        // 动态寻路极大影响性能
 
         protected override void OnCreate()
         {
@@ -33,6 +36,15 @@ namespace DOTS
         protected override void OnUpdate()
         {
             // Debug.Log("NavMeshPathfindingSystem OnUpdate began");
+            Entities
+                .WithoutBurst()
+                .WithStructuralChanges()
+                .ForEach((Entity entity, int entityInQueryIndex, in DeleteFindPathRequest deleteRequest, in NavMeshPathfindingRequestData request) =>
+                {
+                    navMeshQueries[entity].Dispose();
+                    navMeshQueries.Remove(entity);
+                    EntityManager.DestroyEntity(entity);
+                }).Run();
             var lookup = GetBufferFromEntity<PathBufferElement>();
             var commandBuffer = commandBufferSystem.CreateCommandBuffer().AsParallelWriter();
             var world = NavMeshWorld.GetDefaultWorld();
@@ -54,11 +66,26 @@ namespace DOTS
                 var entity = entities[i];
 
                 //Destroy finished requests
-                if (pathfindingDatas[i].Status == PathSearchStatus.Finished)
+                if (pathfindingDatas[i].Status == PathSearchStatus.Finished && pathfindingDatas[i].IsDynamicFindPath)
                 {
+                    // 这里是用于重新导航，用于动态寻路，极大影响性能
+                    float3 curPos = EntityManager.GetComponentData<Translation>(pathfindingDatas[i].Agent).Value;
+                    var entityBuffer = EntityManager.GetBuffer<PathBufferElement>(pathfindingDatas[i].Agent);
+                    entityBuffer.Clear();
+                    EntityManager.SetComponentData<NavMeshPathfindingRequestData>(entity, new NavMeshPathfindingRequestData
+                    {
+                        Start = curPos,
+                            Destination = pathfindingDatas[i].Destination,
+                            Status = PathSearchStatus.Requested,
+                            Agent = pathfindingDatas[i].Agent,
+                            Extents = pathfindingDatas[i].Extents,
+                            AgentTypeId = pathfindingDatas[i].AgentTypeId,
+                    });
+                    EntityManager.SetComponentData(pathfindingDatas[i].Agent, new FollowPathData { RequestEntity = entity, PathIndex = 0, PathStatus = PathStatus.Calculated });
+
                     navMeshQueries[entity].Dispose();
                     navMeshQueries.Remove(entity);
-                    EntityManager.DestroyEntity(entity);
+                    // EntityManager.DestroyEntity(entity);
                     continue;
                 }
 
@@ -114,9 +141,12 @@ namespace DOTS
             for (var i = 0; i < findJobs.Count; i++)
             {
                 var curJobRequstEntity = findJobs[i].EntityRequestId;
-                
+
                 var entityBuffer = EntityManager.GetBuffer<PathBufferElement>(findJobs[i].Request.Agent);
-                // entityBuffer.Clear();
+                // if (findJobs[i].RequestReslut[0].Status != PathSearchStatus.Finished)
+                // {
+                //     entityBuffer.Clear();
+                // }
                 entityBuffer.AddRange(findJobs[i].NativeBuffer);
                 // Debug.Log($"Buffer length{findJobs[i].NativeBuffer.Length}");
                 // Debug.Log(findJobs[i].Request.Status);
@@ -224,7 +254,8 @@ namespace DOTS
                     // Debug.Log($"状态变为开始2 {Request.Status}");
 
                 }
-                else if (Request.Status == PathSearchStatus.Started)
+                else
+                if (Request.Status == PathSearchStatus.Started)
                 {
                     var pathfindingStatus = Query.UpdateFindPath(10, out _);
                     if (pathfindingStatus == PathQueryStatus.Success)
@@ -311,7 +342,7 @@ namespace DOTS
                 // var straightPath = new NativeArray<NavMeshLocation>(pathLength, Allocator.Temp);
                 // var straightPathFlags = new NativeArray<StraightPathFlags>(pathLength, Allocator.Temp);
                 // var vertexSide = new NativeArray<float>(pathLength, Allocator.Temp);
-                  var straightPath = new NativeList<NavMeshLocation>(pathLength, Allocator.Temp);
+                var straightPath = new NativeList<NavMeshLocation>(pathLength, Allocator.Temp);
                 var straightPathFlags = new NativeList<StraightPathFlags>(pathLength, Allocator.Temp);
                 // var vertexSide = new NativeList<float>(pathLength, Allocator.Temp);
 

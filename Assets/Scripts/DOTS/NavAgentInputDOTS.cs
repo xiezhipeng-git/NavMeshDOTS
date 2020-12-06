@@ -94,6 +94,8 @@ namespace DOTS
 
                 var translation = manager.GetComponentData<Translation>(entity);
                 var requestEntity = manager.CreateEntity();
+                
+                // 默认不进行动态寻路，会影响寻路进行时的性能，当检测到需要动态寻路时开启
                 manager.AddComponentData(requestEntity, new NavMeshPathfindingRequestData
                 {
                     Start = translation.Value,
@@ -101,7 +103,8 @@ namespace DOTS
                         Status = PathSearchStatus.Requested,
                         Agent = entity,
                         Extents = Vector3.one * 2,
-                        AgentTypeId = 0
+                        AgentTypeId = 0,
+                        IsDynamicFindPath = true
                 });
                 manager.SetComponentData(entity, new FollowPathData { RequestEntity = requestEntity, PathIndex = 0, PathStatus = PathStatus.Calculated });
 

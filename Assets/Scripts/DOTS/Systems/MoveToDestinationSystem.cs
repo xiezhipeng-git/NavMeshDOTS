@@ -4,6 +4,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 namespace DOTS.Systems
 {
@@ -30,6 +31,8 @@ namespace DOTS.Systems
 
                 var vec2 = translation.Value.xz + distVectorNormalized * speedData.Speed * deltaTime;
                 translation.Value = new float3(vec2.x, translation.Value.y, vec2.y);
+                // Debug.Log($"{ translation.Value}");
+
             }).ScheduleParallel();
         }
 
