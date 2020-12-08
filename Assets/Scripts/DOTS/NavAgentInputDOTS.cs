@@ -19,17 +19,23 @@ namespace DOTS
     {
         ObstacleMono,
         PlayerEntity,
-        ObstacleEntity
+        ObstacleEntity,
+        ObstacleHybird
+
     }
     public class NavAgentInputDOTS : MonoBehaviour, IDeclareReferencedPrefabs, IConvertGameObjectToEntity
     {
         [SerializeField] private Camera Camera;
+
         public GameObject ObstacleMono;
+        public GameObject ObstacleHybird;
         public GameObject ObstacleEntityGameobject;
         public GameObject Player;
         public Entity ObstacleEntity;
         public Entity PlayerEntity;
         public RightKeyCreateObj RightKeyCreate;
+
+        public float InitPosY = 0.5f;
 
         public void DeclareReferencedPrefabs(List<GameObject> gameObjects)
         {
@@ -40,6 +46,7 @@ namespace DOTS
         private void Awake()
         {
             // Debug.Log("Awake");
+
         }
 
         public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
@@ -94,7 +101,7 @@ namespace DOTS
 
                 var translation = manager.GetComponentData<Translation>(entity);
                 var requestEntity = manager.CreateEntity();
-                
+
                 // 默认不进行动态寻路，会影响寻路进行时的性能，当检测到需要动态寻路时开启
                 manager.AddComponentData(requestEntity, new NavMeshPathfindingRequestData
                 {
@@ -104,8 +111,9 @@ namespace DOTS
                         Agent = entity,
                         Extents = Vector3.one * 2,
                         AgentTypeId = 0,
-                        IsDynamicFindPath = true
+                        IsDynamicFindPath = false
                 });
+                manager.AddComponentData(requestEntity, new Translation { Value = translation.Value });
                 manager.SetComponentData(entity, new FollowPathData { RequestEntity = requestEntity, PathIndex = 0, PathStatus = PathStatus.Calculated });
 
             }
@@ -115,19 +123,24 @@ namespace DOTS
         {
             if (RightKeyCreate == RightKeyCreateObj.ObstacleMono)
             {
-                var onFloorPos = new float3(position.x, 1.5f, position.z);
+                var onFloorPos = new float3(position.x, InitPosY, position.z);
                 AddMono(onFloorPos, ObstacleMono);
             }
             if (RightKeyCreate == RightKeyCreateObj.PlayerEntity)
             {
-                var onFloorPos = new float3(position.x, 1.5f, position.z);
+                var onFloorPos = new float3(position.x, InitPosY, position.z);
                 Entity e = AddEntity(onFloorPos, PlayerEntity);
                 World.DefaultGameObjectInjectionWorld.EntityManager.SetComponentData<DestinationData>(e, new DestinationData { Destination = onFloorPos });
             }
             if (RightKeyCreate == RightKeyCreateObj.ObstacleEntity)
             {
-                var onFloorPos = new float3(position.x, 1.5f, position.z);
+                var onFloorPos = new float3(position.x, InitPosY, position.z);
                 Entity e = AddEntity(onFloorPos, ObstacleEntity);
+            }
+            if (RightKeyCreate == RightKeyCreateObj.ObstacleHybird)
+            {
+                var onFloorPos = new float3(position.x, InitPosY, position.z);
+                AddMono(onFloorPos, ObstacleHybird);
             }
         }
 

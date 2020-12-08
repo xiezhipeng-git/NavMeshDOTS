@@ -66,8 +66,9 @@ namespace DOTS
                 var entity = entities[i];
 
                 //Destroy finished requests
-                if (pathfindingDatas[i].Status == PathSearchStatus.Finished && pathfindingDatas[i].IsDynamicFindPath)
+                if (navMeshQueries.TryGetValue(entity, out var hasData) && pathfindingDatas[i].IsDynamicFindPath)
                 {
+                    // Debug.Log("刷新");
                     // 这里是用于重新导航，用于动态寻路，极大影响性能
                     float3 curPos = EntityManager.GetComponentData<Translation>(pathfindingDatas[i].Agent).Value;
                     var entityBuffer = EntityManager.GetBuffer<PathBufferElement>(pathfindingDatas[i].Agent);

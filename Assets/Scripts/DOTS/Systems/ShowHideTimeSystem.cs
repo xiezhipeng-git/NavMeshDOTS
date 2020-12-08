@@ -8,30 +8,31 @@ using Unity.Transforms;
 public class ShowHideTimeSystem : SystemBase
 {
 
+    private EntityCommandBufferSystem commandBufferSystem;
+    protected override void OnCreate()
+    {
+        commandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+    }
     protected override void OnUpdate()
     {
-        // Assign values to local variables captured in your job here, so that it has
-        // everything it needs to do its work when it runs later.
-        // For example,
-        //     float deltaTime = Time.DeltaTime;
+        var commandBuffer = commandBufferSystem.CreateCommandBuffer();
 
-        // This declares a new kind of job, which is a unit of work to do.
-        // The job is declared as an Entities.ForEach with the target components as parameters,
-        // meaning it will process all entities in the world that have both
-        // Translation and Rotation components. Change it to process the component
-        // types you want.
         var timeDelta = Time.DeltaTime;
 
         Entities.WithStructuralChanges()
-            .ForEach((Entity entity, int entityInQueryIndex, ref ShowHideTime data) =>
+            .ForEach((Entity entity, int entityInQueryIndex, ref ShowHideTime data, in Translation translation) =>
             {
 
                 if (data.time > data.timeMax)
                 {
-                    data.isShow = !data.isShow;
+                    data.isShow = false;
                     data.time = 0;
-                    EntityManager.SetEnabled(entity, data.isShow);
-
+                    EntityManager.SetEnabled(entity, false);
+                    var monoSyncEventEntity = EntityManager.CreateEntity();
+                    EntityManager.AddComponentData<MonoSyncEnabledEvent>(monoSyncEventEntity, new MonoSyncEnabledEvent { Entity = entity, Enabled = false });
+                    var updateFindPathEventEntity = EntityManager.CreateEntity();
+                    EntityManager.AddComponentData<UpdateFindPathEvent>(updateFindPathEventEntity, new UpdateFindPathEvent { Entity = entity, Radius = 20f, Pos = translation.Value });
+                    commandBuffer.DestroyEntity(updateFindPathEventEntity);
                 }
                 data.time += timeDelta;
 
@@ -46,14 +47,19 @@ public class ShowHideTimeSystem : SystemBase
             }).Run();
 
         Entities.WithStructuralChanges()
-            .ForEach((Entity entity, int entityInQueryIndex, ref ShowHideTime data, ref Disabled disabled) =>
+            .ForEach((Entity entity, int entityInQueryIndex, ref ShowHideTime data, ref Disabled disabled, in Translation translation) =>
             {
 
                 if (data.time > data.timeMax)
                 {
-                    data.isShow = !data.isShow;
+                    data.isShow = true;
                     data.time = 0;
-                    EntityManager.SetEnabled(entity, data.isShow);
+                    EntityManager.SetEnabled(entity, true);
+                    var monoSyncEventEntity = EntityManager.CreateEntity();
+                    EntityManager.AddComponentData<MonoSyncEnabledEvent>(monoSyncEventEntity, new MonoSyncEnabledEvent { Entity = entity, Enabled = true });
+                    var updateFindPathEventEntity = EntityManager.CreateEntity();
+                    EntityManager.AddComponentData<UpdateFindPathEvent>(updateFindPathEventEntity, new UpdateFindPathEvent { Entity = entity, Radius = 20f, Pos = translation.Value });
+                    commandBuffer.DestroyEntity(updateFindPathEventEntity);
 
                 }
                 data.time += timeDelta;
